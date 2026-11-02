@@ -1,5 +1,6 @@
 
 import { useState, useEffect, useRef } from 'react'
+import { supabase } from './lib/supabase'
 import './App.css'
 
 const starterTasks = [
@@ -25,11 +26,9 @@ const timerLabels = {
 function formatTime(seconds) {
   const minutes = Math.floor(seconds / 60)
   const remainingSeconds = seconds % 60
-
   return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`
 }
 
-// Display schedule times in 12-hour format with AM/PM
 function formatScheduleTime(time) {
   if (!time) return ''
 
@@ -45,7 +44,6 @@ function getDateKey(date) {
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, '0')
   const day = String(date.getDate()).padStart(2, '0')
-
   return `${year}-${month}-${day}`
 }
 
@@ -59,9 +57,99 @@ function readStorage(key, fallback) {
 }
 
 function App() {
+  // Authentication
+  const [user, setUser] = useState(null)
+  const [cloudDataLoaded, setCloudDataLoaded] = useState(false)
+  const [cloudDataUserId, setCloudDataUserId] = useState(null)
+  const [authLoading, setAuthLoading] = useState(true)
+  const [authMode, setAuthMode] = useState('login')
+  const [authEmail, setAuthEmail] = useState('')
+  const [authPassword, setAuthPassword] = useState('')
+  const [authMessage, setAuthMessage] = useState('')
+
+  useEffect(() => {
+    let mounted = true
+
+    async function checkSession() {
+      const { data, error } = await supabase.auth.getSession()
+
+      if (!mounted) return
+
+      if (error) {
+        setAuthMessage(error.message)
+      }
+
+      setUser(data?.session?.user ?? null)
+      setAuthLoading(false)
+    }
+
+    checkSession()
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (mounted) {
+        setUser(session?.user ?? null)
+        setAuthLoading(false)
+      }
+    })
+
+    return () => {
+      mounted = false
+      subscription.unsubscribe()
+    }
+  }, [])
+
+  async function handleAuthSubmit(event) {
+    event.preventDefault()
+    setAuthMessage('')
+
+    if (!authEmail.trim() || !authPassword) {
+      setAuthMessage('Please enter your email and password.')
+      return
+    }
+
+    if (authMode === 'signup') {
+      const { data, error } = await supabase.auth.signUp({
+        email: authEmail.trim(),
+        password: authPassword,
+      })
+
+      if (error) {
+        setAuthMessage(error.message)
+        return
+      }
+
+      if (data.session) {
+        setAuthMessage('Account created successfully!')
+      } else {
+        setAuthMessage('Account created! Please check your email to confirm it.')
+      }
+    } else {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: authEmail.trim(),
+        password: authPassword,
+      })
+
+      if (error) {
+        setAuthMessage(error.message)
+      }
+    }
+  }
+
+  async function handleLogout() {
+    const { error } = await supabase.auth.signOut()
+
+    if (error) {
+      setAuthMessage(error.message)
+    }
+  }
+
+  // General app state
   const [activePage, setActivePage] = useState('My Day')
   const [currentDateTime, setCurrentDateTime] = useState(new Date())
 
+  // Tasks
   const [tasks, setTasks] = useState(() =>
     readStorage('luwang-tasks', starterTasks)
   )
@@ -69,23 +157,35 @@ function App() {
   const [category, setCategory] = useState('Study')
   const [time, setTime] = useState('')
 
+  // Schedule and calendar
   const [schedule, setSchedule] = useState(() =>
     readStorage('luwang-schedule', [])
   )
   const [scheduleTitle, setScheduleTitle] = useState('')
   const [scheduleTime, setScheduleTime] = useState('')
   const [scheduleEndTime, setScheduleEndTime] = useState('')
+  const [selectedDate, setSelectedDate] = useState(() =>
+    getDateKey(new Date())
+  )
+  const [calendarMonth, setCalendarMonth] = useState(() => {
+    const today = new Date()
+    return new Date(today.getFullYear(), today.getMonth(), 1)
+  })
+  const [scheduleDate, setScheduleDate] = useState(() =>
+    getDateKey(new Date())
+  )
 
+  // Activity and timer
   const [activityLog, setActivityLog] = useState(() =>
     readStorage('luwangActivityLog', [])
   )
-
   const [timerMode, setTimerMode] = useState('focus')
   const [secondsLeft, setSecondsLeft] = useState(durations.focus)
   const [timerRunning, setTimerRunning] = useState(false)
   const [savedSessionSeconds, setSavedSessionSeconds] = useState(0)
   const [focusSessions, setFocusSessions] = useState(0)
 
+  // Workouts
   const [workouts, setWorkouts] = useState(() =>
     readStorage('luwang-workouts', [])
   )
@@ -94,6 +194,7 @@ function App() {
   const [exerciseReps, setExerciseReps] = useState('10')
   const [exerciseWeight, setExerciseWeight] = useState('')
 
+  // Angee
   const [chatMessages, setChatMessages] = useState([
     {
       role: 'ai',
@@ -104,7 +205,117 @@ function App() {
   const [isTyping, setIsTyping] = useState(false)
   const chatMessagesRef = useRef(null)
 
-  // Save app data on this device
+  // Load the logged-in user's cloud data
+  useEffect(() => {
+    if (!user) {
+      setCloudDataLoaded(false)
+      setCloudDataUserId(null)
+      return
+    }
+
+    let cancelled = false
+
+    async function loadCloudData() {
+      setCloudDataLoaded(false)
+      setCloudDataUserId(null)
+
+      const { data, error } = await supabase
+        .from('luwang_data')
+        .select('data_type, content')
+        .eq('user_id', user.id)
+
+      if (error) {
+        console.error('Cloud loading error:', error.message)
+        if (!cancelled) {
+          setAuthMessage('Could not load your cloud data: ' + error.message)
+        }
+        return
+      }
+
+      if (cancelled) return
+
+      const saved = Object.fromEntries(
+        (data || []).map(item => [item.data_type, item.content])
+      )
+
+      const dataTypes = ['tasks', 'schedule', 'activityLog', 'workouts']
+      const hasLegacyMigration = localStorage.getItem('luwang-legacy-migrated')
+      const updates = []
+
+      for (const type of dataTypes) {
+        if (saved[type] !== undefined) continue
+
+        let content = []
+
+        if (!hasLegacyMigration) {
+          const storageKey = {
+            tasks: 'luwang-tasks',
+            schedule: 'luwang-schedule',
+            activityLog: 'luwangActivityLog',
+            workouts: 'luwang-workouts',
+          }[type]
+
+          try {
+            const localValue = localStorage.getItem(storageKey)
+
+            if (localValue !== null) {
+              content = JSON.parse(localValue)
+            } else if (type === 'tasks') {
+              content = starterTasks
+            }
+          } catch {
+            content = type === 'tasks' ? starterTasks : []
+          }
+        } else if (type === 'tasks') {
+          content = starterTasks
+        }
+
+        updates.push({
+          user_id: user.id,
+          data_type: type,
+          content,
+        })
+
+        saved[type] = content
+      }
+
+      if (updates.length > 0) {
+        const { error: saveError } = await supabase
+          .from('luwang_data')
+          .upsert(updates, { onConflict: 'user_id,data_type' })
+
+        if (saveError) {
+          console.error('Migration error:', saveError.message)
+          if (!cancelled) {
+            setAuthMessage('Could not save your existing data: ' + saveError.message)
+          }
+          return
+        }
+      }
+
+      if (cancelled) return
+
+      if (!hasLegacyMigration) {
+        localStorage.setItem('luwang-legacy-migrated', 'true')
+      }
+
+      setTasks(saved.tasks ?? starterTasks)
+      setSchedule(saved.schedule ?? [])
+      setActivityLog(saved.activityLog ?? [])
+      setWorkouts(saved.workouts ?? [])
+
+      setCloudDataUserId(user.id)
+      setCloudDataLoaded(true)
+    }
+
+    loadCloudData()
+
+    return () => {
+      cancelled = true
+    }
+  }, [user])
+
+  // Save data locally
   useEffect(() => {
     localStorage.setItem('luwang-tasks', JSON.stringify(tasks))
   }, [tasks])
@@ -120,6 +331,43 @@ function App() {
   useEffect(() => {
     localStorage.setItem('luwang-workouts', JSON.stringify(workouts))
   }, [workouts])
+
+  // Save data to the logged-in user's cloud account
+  useEffect(() => {
+    if (!user || !cloudDataLoaded || cloudDataUserId !== user.id) return
+
+    let cancelled = false
+
+    async function saveCloudData() {
+      const records = [
+        { data_type: 'tasks', content: tasks },
+        { data_type: 'schedule', content: schedule },
+        { data_type: 'activityLog', content: activityLog },
+        { data_type: 'workouts', content: workouts },
+      ].map(item => ({
+        user_id: user.id,
+        ...item,
+        updated_at: new Date().toISOString(),
+      }))
+
+      const { error } = await supabase
+        .from('luwang_data')
+        .upsert(records, { onConflict: 'user_id,data_type' })
+
+      if (cancelled) return
+
+      if (error) {
+        console.error('Cloud save error:', error.message)
+        setAuthMessage('Cloud save failed: ' + error.message)
+      }
+    }
+
+    saveCloudData()
+
+    return () => {
+      cancelled = true
+    }
+  }, [user, cloudDataLoaded, cloudDataUserId, tasks, schedule, activityLog, workouts])
 
   // Live clock
   useEffect(() => {
@@ -176,7 +424,12 @@ function App() {
   function addScheduleItem(event) {
     event.preventDefault()
 
-    if (!scheduleTitle.trim() || !scheduleTime || !scheduleEndTime) {
+    if (
+      !scheduleTitle.trim() ||
+      !scheduleDate ||
+      !scheduleTime ||
+      !scheduleEndTime
+    ) {
       return
     }
 
@@ -190,6 +443,7 @@ function App() {
       {
         id: Date.now(),
         title: scheduleTitle.trim(),
+        date: scheduleDate,
         time: scheduleTime,
         endTime: scheduleEndTime,
         done: false,
@@ -199,6 +453,7 @@ function App() {
     setScheduleTitle('')
     setScheduleTime('')
     setScheduleEndTime('')
+    setSelectedDate(scheduleDate)
   }
 
   function toggleScheduleItem(id) {
@@ -349,9 +604,7 @@ function App() {
           ? {
               ...workout,
               completed: !workout.completed,
-              completedAt: !workout.completed
-                ? new Date().toISOString()
-                : null,
+              completedAt: !workout.completed ? new Date().toISOString() : null,
             }
           : workout
       )
@@ -379,9 +632,7 @@ function App() {
   const workoutDays = new Set(
     completedWorkouts
       .filter(workout => workout.completedAt)
-      .map(workout =>
-        workoutDateKey(new Date(workout.completedAt))
-      )
+      .map(workout => workoutDateKey(new Date(workout.completedAt)))
   )
 
   let workoutStreak = 0
@@ -496,9 +747,182 @@ function App() {
     }, 1000)
   }
 
-  const sortedSchedule = schedule.slice().sort((a, b) =>
-    a.time.localeCompare(b.time)
-  )
+  // Selected date's schedule
+  const sortedSchedule = schedule
+    .filter(item => (item.date || getDateKey(new Date())) === selectedDate)
+    .slice()
+    .sort((a, b) => (a.time || '').localeCompare(b.time || ''))
+
+  // Calendar days
+  const calendarDays = []
+
+  const firstDay = new Date(
+    calendarMonth.getFullYear(),
+    calendarMonth.getMonth(),
+    1
+  ).getDay()
+
+  const daysInMonth = new Date(
+    calendarMonth.getFullYear(),
+    calendarMonth.getMonth() + 1,
+    0
+  ).getDate()
+
+  for (let i = 0; i < firstDay; i++) {
+    calendarDays.push(null)
+  }
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    calendarDays.push(
+      new Date(
+        calendarMonth.getFullYear(),
+        calendarMonth.getMonth(),
+        day
+      )
+    )
+  }
+
+  function changeCalendarMonth(offset) {
+    const newMonth = new Date(
+      calendarMonth.getFullYear(),
+      calendarMonth.getMonth() + offset,
+      1
+    )
+
+    const newDate = getDateKey(newMonth)
+
+    setCalendarMonth(newMonth)
+    setSelectedDate(newDate)
+    setScheduleDate(newDate)
+  }
+
+  // Loading screens
+  if (authLoading) {
+    return (
+      <div style={{ padding: 40, textAlign: 'center' }}>
+        Loading Luwang...
+      </div>
+    )
+  }
+
+  if (user && (!cloudDataLoaded || cloudDataUserId !== user.id)) {
+    return (
+      <div className="loading-screen">
+        <h2>Loading your Luwang...</h2>
+        <p>Preparing your private workspace ☁️</p>
+      </div>
+    )
+  }
+
+  // Login or signup
+  if (!user) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
+        background: '#111827',
+        color: 'white',
+        fontFamily: 'sans-serif',
+      }}>
+        <form onSubmit={handleAuthSubmit} style={{
+          width: '100%',
+          maxWidth: 380,
+          padding: 30,
+          borderRadius: 20,
+          background: '#1f2937',
+          boxSizing: 'border-box',
+        }}>
+          <h1 style={{ textAlign: 'center' }}>Luwang</h1>
+          <p style={{ textAlign: 'center', color: '#9ca3af' }}>
+            Your personal productivity space
+          </p>
+
+          <h2 style={{ textAlign: 'center' }}>
+            {authMode === 'login' ? 'Welcome Back!' : 'Create Account'}
+          </h2>
+
+          <input
+            type="email"
+            placeholder="Email address"
+            value={authEmail}
+            onChange={event => setAuthEmail(event.target.value)}
+            required
+            style={{
+              width: '100%',
+              padding: 14,
+              marginBottom: 15,
+              boxSizing: 'border-box',
+              borderRadius: 10,
+              border: '1px solid #4b5563',
+            }}
+          />
+
+          <input
+            type="password"
+            placeholder="Password (minimum 6 characters)"
+            value={authPassword}
+            onChange={event => setAuthPassword(event.target.value)}
+            required
+            minLength={6}
+            style={{
+              width: '100%',
+              padding: 14,
+              marginBottom: 15,
+              boxSizing: 'border-box',
+              borderRadius: 10,
+              border: '1px solid #4b5563',
+            }}
+          />
+
+          <button type="submit" style={{
+            width: '100%',
+            padding: 14,
+            border: 'none',
+            borderRadius: 10,
+            background: '#8b5cf6',
+            color: 'white',
+            fontWeight: 'bold',
+            cursor: 'pointer',
+          }}>
+            {authMode === 'login' ? 'Log In' : 'Sign Up'}
+          </button>
+
+          {authMessage && (
+            <p style={{ textAlign: 'center', color: '#fbbf24' }}>
+              {authMessage}
+            </p>
+          )}
+
+          <p style={{ textAlign: 'center', marginTop: 20 }}>
+            {authMode === 'login'
+              ? "Don't have an account?"
+              : 'Already have an account?'}
+          </p>
+
+          <button
+            type="button"
+            onClick={() => {
+              setAuthMode(authMode === 'login' ? 'signup' : 'login')
+              setAuthMessage('')
+            }}
+            style={{
+              width: '100%',
+              padding: 10,
+              background: 'transparent',
+              border: 'none',
+              color: '#a78bfa',
+              cursor: 'pointer',
+            }}
+          >
+            {authMode === 'login' ? 'Create an account' : 'Log in instead'}
+          </button>
+        </form>
+      </div>
+    )
+  }
 
   return (
     <main className="app-shell">
@@ -575,6 +999,21 @@ function App() {
           <span className="status-pill">
             <i /> Your day, your goals
           </span>
+
+          <button
+            onClick={handleLogout}
+            style={{
+              padding: '10px 18px',
+              borderRadius: 10,
+              border: '1px solid #ef4444',
+              background: 'transparent',
+              color: '#ef4444',
+              cursor: 'pointer',
+              fontWeight: 600,
+            }}
+          >
+            Log Out
+          </button>
         </header>
 
         {/* MY DAY */}
@@ -740,6 +1179,72 @@ function App() {
           <section className="schedule-card">
             <p className="eyebrow">DAILY PLANNING</p>
             <h2>My Schedule</h2>
+
+            <div className="calendar-header">
+              <button
+                type="button"
+                aria-label="Previous month"
+                onClick={() => changeCalendarMonth(-1)}
+              >
+                ←
+              </button>
+
+              <div className="calendar-month-title">
+                {selectedDate === getDateKey(new Date()) && (
+                  <span className="calendar-today-label">Today</span>
+                )}
+
+                <h3>
+                  {calendarMonth.toLocaleDateString('en-US', {
+                    month: 'long',
+                    year: 'numeric',
+                  })}
+                </h3>
+              </div>
+
+              <button
+                type="button"
+                aria-label="Next month"
+                onClick={() => changeCalendarMonth(1)}
+              >
+                →
+              </button>
+            </div>
+
+            <div className="calendar-grid">
+              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                <div className="calendar-weekday" key={day}>
+                  {day}
+                </div>
+              ))}
+
+              {calendarDays.map((date, index) => {
+                if (!date) {
+                  return <div key={`empty-${index}`} />
+                }
+
+                const dateKey = getDateKey(date)
+                const hasActivity = schedule.some(
+                  item => (item.date || getDateKey(new Date())) === dateKey
+                )
+
+                return (
+                  <button
+                    type="button"
+                    key={dateKey}
+                    className={`calendar-day ${selectedDate === dateKey ? 'selected' : ''}`}
+                    onClick={() => {
+                      setSelectedDate(dateKey)
+                      setScheduleDate(dateKey)
+                    }}
+                  >
+                    <span>{date.getDate()}</span>
+                    {hasActivity && <span className="calendar-dot" />}
+                  </button>
+                )
+              })}
+            </div>
+
             <p className="section-description">
               Organise your day with a clear timeline of activities.
             </p>
@@ -751,6 +1256,29 @@ function App() {
                 value={scheduleTitle}
                 onChange={event => setScheduleTitle(event.target.value)}
                 aria-label="Activity title"
+                required
+              />
+
+              <input
+                type="date"
+                value={scheduleDate}
+                onChange={event => {
+                  const date = event.target.value
+                  setScheduleDate(date)
+                  setSelectedDate(date)
+
+                  if (date) {
+                    const chosenDate = new Date(`${date}T00:00:00`)
+                    setCalendarMonth(
+                      new Date(
+                        chosenDate.getFullYear(),
+                        chosenDate.getMonth(),
+                        1
+                      )
+                    )
+                  }
+                }}
+                aria-label="Schedule date"
                 required
               />
 
@@ -774,6 +1302,20 @@ function App() {
             </form>
 
             <div className="schedule-list">
+              <div className="selected-date-heading">
+                <h3>
+                  {new Date(`${selectedDate}T00:00:00`).toLocaleDateString(
+                    'en-US',
+                    {
+                      weekday: 'long',
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                    }
+                  )}
+                </h3>
+              </div>
+
               {sortedSchedule.length === 0 ? (
                 <p className="empty-state">
                   No activities scheduled yet. Add your first activity above.

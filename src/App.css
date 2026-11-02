@@ -581,20 +581,25 @@ footer {
 ======================================== */
 
 .schedule-card {
+  min-width: 0;
   padding: 27px;
 }
 
 .schedule-form {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: stretch;
   gap: 12px;
+  width: 100%;
+  min-width: 0;
   margin: 24px 0;
 }
 
-.schedule-form input {
+.schedule-form > input {
+  display: block;
   width: 100%;
   min-width: 0;
+  max-width: 100%;
   min-height: 46px;
   padding: 13px 14px;
   border: 1px solid #363644;
@@ -604,12 +609,21 @@ footer {
   font-size: 12px;
 }
 
-.schedule-form input:focus {
+.schedule-form > input:focus {
   border-color: var(--accent);
   outline: none;
 }
 
-.schedule-form button {
+.schedule-form > input[type="time"],
+.schedule-form > input[type="date"] {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.schedule-form > button {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-width: 0;
   min-height: 46px;
   padding: 12px 18px;
   border: 0;
@@ -622,7 +636,7 @@ footer {
   cursor: pointer;
 }
 
-.schedule-form button:hover {
+.schedule-form > button:hover {
   background: #a181f5;
   transform: translateY(-1px);
 }
@@ -1095,6 +1109,118 @@ footer {
 }
 
 /* ========================================
+   CALENDAR
+======================================== */
+
+.calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 20px 0;
+}
+
+.calendar-month-title {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  text-align: center;
+}
+
+.calendar-header h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.calendar-today-label {
+  color: #b99aff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.calendar-header button {
+  flex-shrink: 0;
+  padding: 8px 14px;
+  border: 1px solid #393647;
+  border-radius: 8px;
+  background: #242330;
+  color: #e4dcfa;
+  cursor: pointer;
+}
+
+.calendar-header button:hover {
+  border-color: var(--accent);
+  background: #302343;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.calendar-weekday {
+  min-width: 0;
+  padding: 8px 0;
+  color: #aaa5b7;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.calendar-day {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-width: 0;
+  min-height: 52px;
+  padding: 8px 2px;
+  border: 1px solid #454553;
+  border-radius: 10px;
+  background: #20212c;
+  color: #f4f2fa;
+  font-size: 15px;
+  font-weight: 700;
+  text-align: center;
+  cursor: pointer;
+}
+
+.calendar-day:hover {
+  border-color: var(--accent);
+  background: #302343;
+}
+
+.calendar-day.selected {
+  border: 2px solid #8b65e8;
+  background: #5548d9;
+  color: #ffffff;
+}
+
+.calendar-day span {
+  color: inherit;
+  font-weight: 800;
+}
+
+.calendar-dot {
+  position: absolute;
+  bottom: 5px;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #b99aff;
+  transform: translateX(-50%);
+}
+
+.calendar-day.selected .calendar-dot {
+  background: #ffffff;
+}
+
+/* ========================================
    MOBILE NAVIGATION
 ======================================== */
 
@@ -1197,15 +1323,18 @@ button:disabled {
     padding: 20px 16px;
   }
 
-  /* Schedule inputs stack on mobile */
   .schedule-form {
     display: flex;
     flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
   }
 
-  .schedule-form input,
-  .schedule-form button {
+  .schedule-form > input,
+  .schedule-form > button {
     width: 100%;
+    min-width: 0;
+    max-width: 100%;
     min-height: 44px;
   }
 
@@ -1258,6 +1387,16 @@ button:disabled {
     font-size: 21px;
   }
 
+  .calendar-grid {
+    gap: 5px;
+  }
+
+  .calendar-day {
+    min-height: 44px;
+    border-radius: 8px;
+    font-size: 14px;
+  }
+
   /* Fixed bottom navigation */
   .mobile-nav {
     position: fixed;
@@ -1265,16 +1404,12 @@ button:disabled {
     right: 0;
     bottom: 0;
     left: 0;
-
     width: 100%;
     min-height: 70px;
-
     display: flex;
     justify-content: space-around;
     align-items: center;
-
     padding: 8px 5px calc(8px + env(safe-area-inset-bottom));
-
     border-top: 1px solid #343543;
     background: rgba(17, 18, 25, 0.97);
     backdrop-filter: blur(14px);
@@ -1287,12 +1422,10 @@ button:disabled {
     justify-content: center;
     align-items: center;
     gap: 5px;
-
     padding: 5px 0;
     border: none;
     background: none;
     color: #a6a3b2;
-
     font-size: 20px;
     cursor: pointer;
   }
@@ -1349,89 +1482,21 @@ button:disabled {
   .workout-item button {
     padding: 8px 10px;
   }
-}
 
-/* FIX: My Schedule form on mobile */
-.schedule-card {
-  min-width: 0;
-  box-sizing: border-box;
-}
-
-.schedule-form {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  min-width: 0;
-  box-sizing: border-box;
-}
-
-.schedule-form > input,
-.schedule-form > button {
-  display: block;
-  width: 100%;
-  min-width: 0;
-  max-width: 100%;
-  flex: 1 1 auto;
-  box-sizing: border-box;
-}
-
-.schedule-form input[type="time"] {
-  -webkit-appearance: none;
-  appearance: none;
-  min-width: 0;
-  max-width: 100%;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-@media (max-width: 800px) {
-  .schedule-form {
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 12px;
+  .calendar-header h3 {
+    font-size: 16px;
   }
 
-  .schedule-form > input,
-  .schedule-form > button {
-    width: 100%;
-    min-width: 0;
-    max-width: 100%;
-  }
-}
-
-/* Schedule form with start and end times */
-.schedule-form {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 12px;
-  width: 100%;
-  min-width: 0;
-}
-
-.schedule-form > input,
-.schedule-form > button {
-  width: 100%;
-  min-width: 0;
-  max-width: 100%;
-  box-sizing: border-box;
-}
-
-.schedule-form > button {
-  grid-column: 1 / -1;
-}
-
-@media (max-width: 800px) {
-  .schedule-form {
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
+  .calendar-grid {
+    gap: 4px;
   }
 
-  .schedule-form > input,
-  .schedule-form > button {
-    width: 100%;
-    min-width: 0;
-    max-width: 100%;
+  .calendar-day {
+    min-height: 40px;
+    font-size: 13px;
+  }
+
+  .calendar-weekday {
+    font-size: 10px;
   }
 }
