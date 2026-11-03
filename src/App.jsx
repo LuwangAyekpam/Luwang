@@ -168,31 +168,46 @@ const [newProject, setNewProject] = useState('')
   const activeAlarmContext = useRef(null)
   const activeAlarmOscillator = useRef(null)
 
-  useEffect(() => {
-    let mounted = true
+ useEffect(() => {
+  let mounted = true
 
-    async function checkSession() {
+  async function checkSession() {
+    try {
       const { data, error } = await supabase.auth.getSession()
+
       if (!mounted) return
-      if (error) setAuthMessage(error.message)
+
+      if (error) {
+        setAuthMessage(error.message)
+      }
+
       setUser(data?.session?.user ?? null)
-      setAuthLoading(false)
+    } catch (error) {
+      if (!mounted) return
+      console.warn('Session check failed:', error)
+      setAuthMessage('Offline mode: unable to verify your account.')
+      setUser(null)
+    } finally {
+      if (mounted) setAuthLoading(false)
     }
+  }
 
-    checkSession()
+  checkSession()
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+  const { data: authListener } = supabase.auth.onAuthStateChange(
+    (_event, session) => {
       if (mounted) {
         setUser(session?.user ?? null)
-        setAuthLoading(false)
       }
-    })
-
-    return () => {
-      mounted = false
-      subscription.unsubscribe()
     }
-  }, [])
+  )
+
+  return () => {
+    mounted = false
+    authListener.subscription.unsubscribe()
+  }
+}, [])
+
 
   async function handleAuthSubmit(event) {
     event.preventDefault()
@@ -203,25 +218,30 @@ const [newProject, setNewProject] = useState('')
       return
     }
 
-    if (authMode === 'signup') {
-      const { data, error } = await supabase.auth.signUp({
-        email: authEmail.trim(),
-        password: authPassword,
-      })
+    try {
+      if (authMode === 'signup') {
+        const { data, error } = await supabase.auth.signUp({
+          email: authEmail.trim(),
+          password: authPassword,
+        })
 
-      if (error) return setAuthMessage(error.message)
+        if (error) return setAuthMessage(error.message)
 
-      setAuthMessage(
-        data.session
-          ? 'Account created successfully!'
-          : 'Account created! Please check your email to confirm it.'
-      )
-    } else {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: authEmail.trim(),
-        password: authPassword,
-      })
-      if (error) setAuthMessage(error.message)
+        setAuthMessage(
+          data.session
+            ? 'Account created successfully!'
+            : 'Account created! Please check your email to confirm it.'
+        )
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({
+          email: authEmail.trim(),
+          password: authPassword,
+        })
+
+        if (error) setAuthMessage(error.message)
+      }
+    } catch (error) {
+      setAuthMessage(error.message || 'Authentication failed.')
     }
   }
 
@@ -239,79 +259,110 @@ const [newProject, setNewProject] = useState('')
 
     let cancelled = false
 
-    async function loadCloudData() {
-      setCloudDataLoaded(false)
-      setCloudDataUserId(null)
-
-      const { data, error } = await supabase
-        .from('luwang_data')
-        .select('data_type, content')
-        .eq('user_id', user.id)
-
-      if (error) {
-        if (!cancelled) setAuthMessage('Could not load your cloud data: ' + error.message)
-        return
-      }
-
-      if (cancelled) return
-
-      const saved = Object.fromEntries((data || []).map(item => [item.data_type, item.content]))
-      const dataTypes = ['tasks', 'schedule', 'activityLog', 'workouts']
-      const migrated = localStorage.getItem('luwang-legacy-migrated')
-      const updates = []
-
-      for (const type of dataTypes) {
-        if (saved[type] !== undefined) continue
-
-        let content = []
-        if (!migrated) {
-          const storageKey = {
-            tasks: 'luwang-tasks',
-            schedule: 'luwang-schedule',
-            activityLog: 'luwangActivityLog',
-            workouts: 'luwang-workouts',
-          }[type]
-
-          try {
-            const localValue = localStorage.getItem(storageKey)
-            if (localValue !== null) content = JSON.parse(localValue)
-            else if (type === 'tasks') content = starterTasks
-          } catch {
-            content = type === 'tasks' ? starterTasks : []
-          }
-        } else if (type === 'tasks') {
-          content = starterTasks
-        }
-
-        updates.push({ user_id: user.id, data_type: type, content })
-        saved[type] = content
-      }
-
-      if (updates.length) {
-        const { error: saveError } = await supabase
-          .from('luwang_data')
-          .upsert(updates, { onConflict: 'user_id,data_type' })
-
-        if (saveError) {
-          if (!cancelled) setAuthMessage('Could not save your existing data: ' + saveError.message)
-          return
-        }
-      }
-
-      if (cancelled) return
-
-      if (!migrated) localStorage.setItem('luwang-legacy-migrated', 'true')
-
-      setTasks(saved.tasks ?? starterTasks)
-      setSchedule(saved.schedule ?? [])
-      setActivityLog(saved.activityLog ?? [])
-      setWorkouts(saved.workouts ?? [])
+    function loadLocalData() {
+      setTasks(readStorage('luwang-tasks', starterTasks))
+      setSchedule(readStorage('luwang-schedule', []))
+      setActivityLog(readStorage('luwangActivityLog', []))
+      setWorkouts(readStorage('luwang-workouts', []))
       setCloudDataUserId(user.id)
       setCloudDataLoaded(true)
     }
 
+    async function loadCloudData() {
+      if (!navigator.onLine) {
+        loadLocalData()
+        return
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('luwang_data')
+          .select('data_type, content')
+          .eq('user_id', user.id)
+
+        if (cancelled) return
+
+        if (error) {
+          console.warn('Cloud unavailable. Using local data:', error.message)
+          loadLocalData()
+          return
+        }
+
+        const saved = Object.fromEntries(
+          (data || []).map(item => [item.data_type, item.content])
+        )
+
+        const dataTypes = ['tasks', 'schedule', 'activityLog', 'workouts']
+        const migrated = localStorage.getItem('luwang-legacy-migrated')
+        const updates = []
+
+        for (const type of dataTypes) {
+          if (saved[type] !== undefined) continue
+
+          let content = []
+          if (!migrated) {
+            const storageKey = {
+              tasks: 'luwang-tasks',
+              schedule: 'luwang-schedule',
+              activityLog: 'luwangActivityLog',
+              workouts: 'luwang-workouts',
+            }[type]
+
+            try {
+              const localValue = localStorage.getItem(storageKey)
+              if (localValue !== null) content = JSON.parse(localValue)
+              else if (type === 'tasks') content = starterTasks
+            } catch {
+              content = type === 'tasks' ? starterTasks : []
+            }
+          } else if (type === 'tasks') {
+            content = starterTasks
+          }
+
+          updates.push({
+            user_id: user.id,
+            data_type: type,
+            content,
+          })
+          saved[type] = content
+        }
+
+        if (updates.length) {
+          const { error: saveError } = await supabase
+            .from('luwang_data')
+            .upsert(updates, { onConflict: 'user_id,data_type' })
+
+          if (cancelled) return
+
+          if (saveError) {
+            console.warn('Cloud migration save failed:', saveError.message)
+          }
+        }
+
+        if (cancelled) return
+
+        if (!migrated) {
+          localStorage.setItem('luwang-legacy-migrated', 'true')
+        }
+
+        setTasks(saved.tasks ?? starterTasks)
+        setSchedule(saved.schedule ?? [])
+        setActivityLog(saved.activityLog ?? [])
+        setWorkouts(saved.workouts ?? [])
+        setCloudDataUserId(user.id)
+        setCloudDataLoaded(true)
+      } catch (error) {
+        if (cancelled) return
+        console.warn('Cloud loading failed:', error)
+        loadLocalData()
+      }
+    }
+
     loadCloudData()
-    return () => { cancelled = true }
+
+    return () => {
+      cancelled = true
+    }
   }, [user])
 
   useEffect(() => {
