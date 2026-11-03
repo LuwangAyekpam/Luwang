@@ -403,13 +403,14 @@ const [newProject, setNewProject] = useState('')
   useEffect(() => {
     localStorage.setItem('luwang-dark-mode', JSON.stringify(darkMode))
   }, [darkMode])
-
   useEffect(() => {
     if (!user || !cloudDataLoaded || cloudDataUserId !== user.id) return
 
     let cancelled = false
 
     async function saveCloudData() {
+      if (!navigator.onLine) return
+
       const records = [
         { data_type: 'tasks', content: tasks },
         { data_type: 'schedule', content: schedule },
@@ -421,17 +422,39 @@ const [newProject, setNewProject] = useState('')
         updated_at: new Date().toISOString(),
       }))
 
-      const { error } = await supabase
-        .from('luwang_data')
-        .upsert(records, { onConflict: 'user_id,data_type' })
+      try {
+        const { error } = await supabase
+          .from('luwang_data')
+          .upsert(records, { onConflict: 'user_id,data_type' })
 
-      if (!cancelled && error) setAuthMessage('Cloud save failed: ' + error.message)
+        if (cancelled) return
+
+        if (error) {
+          console.warn('Cloud sync failed:', error.message)
+          setAuthMessage('Cloud sync pending. Your changes are saved on this device.')
+        } else {
+          setAuthMessage('')
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.warn('Cloud sync unavailable:', error)
+        }
+      }
     }
 
-    saveCloudData()
-    return () => { cancelled = true }
-  }, [user, cloudDataLoaded, cloudDataUserId, tasks, schedule, activityLog, workouts])
+    function handleOnline() {
+      saveCloudData()
+    }
 
+    window.addEventListener('online', handleOnline)
+
+    saveCloudData()
+
+    return () => {
+      cancelled = true
+      window.removeEventListener('online', handleOnline)
+    }
+  }, [user, cloudDataLoaded, cloudDataUserId, tasks, schedule, activityLog, workouts])
   useEffect(() => {
     const clock = setInterval(() => setCurrentDateTime(new Date()), 1000)
     return () => clearInterval(clock)
