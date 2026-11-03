@@ -1,11 +1,10 @@
-
 * {
   box-sizing: border-box;
 }
 
 html {
   min-width: 320px;
-  background: #0c0d12;
+  background: #fffdf5;
 }
 
 body {
@@ -14,6 +13,9 @@ body {
   min-height: 100vh;
 }
 
-button, input, select {
+button,
+input,
+select,
+textarea {
   font-family: inherit;
 }
