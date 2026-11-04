@@ -1964,3 +1964,534 @@ footer {
     padding: 18px;
   }
 }
+
+/* =================================
+   LUWANG — DESIGN REFINEMENT
+================================= */
+
+body {
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+/* Main headings */
+.topbar h1 {
+  font-size: clamp(25px, 3vw, 32px);
+}
+
+.content-card h2 {
+  font-size: 23px;
+}
+
+.section-heading {
+  margin-bottom: 25px;
+}
+
+/* More breathing room */
+.content-card {
+  padding: 30px;
+  margin-bottom: 28px;
+  border-radius: 20px;
+}
+
+.stats-grid {
+  gap: 20px;
+  margin-bottom: 28px;
+}
+
+.stat-card {
+  padding: 25px;
+  border-radius: 19px;
+}
+
+.overview-grid {
+  gap: 24px;
+}
+
+/* Readable text */
+.stat-card p,
+.activity-item,
+.activity-item strong,
+.task-info strong,
+.schedule-item > strong,
+.workout-item strong {
+  font-size: 14px;
+}
+
+.stat-card small,
+.task-info small,
+.activity-list .activity-item small,
+.workout-item p,
+.workout-item small,
+.setting-row small {
+  font-size: 12px;
+}
+
+.section-description,
+.subtitle {
+  font-size: 15px;
+}
+
+input,
+select,
+textarea {
+  padding: 13px 14px;
+  font-size: 14px;
+}
+
+.primary-button,
+.secondary-button,
+.danger-button {
+  min-height: 46px;
+  padding: 12px 19px;
+  font-size: 14px;
+}
+
+/* More comfortable task rows */
+.task-row,
+.schedule-item,
+.workout-item {
+  padding-top: 18px;
+  padding-bottom: 18px;
+}
+
+.task-info {
+  gap: 7px;
+}
+
+/* Settings readability */
+.settings-menu button {
+  padding: 14px 12px;
+  font-size: 13px;
+}
+
+.setting-row {
+  padding: 19px 0;
+}
+
+.setting-row strong {
+  font-size: 14px;
+}
+
+.settings-subheading {
+  font-size: 17px;
+  margin: 30px 0 18px;
+}
+
+.theme-option {
+  padding: 15px;
+}
+
+.theme-option strong {
+  font-size: 14px;
+}
+
+.theme-option small {
+  font-size: 12px;
+}
+
+/* Mobile adjustments */
+@media (max-width: 760px) {
+  .content-card {
+    padding: 22px;
+    margin-bottom: 22px;
+  }
+
+  .stat-card {
+    padding: 16px;
+  }
+
+  .stat-card p {
+    font-size: 12px;
+  }
+
+  .stat-card small {
+    font-size: 11px;
+  }
+
+  .section-description,
+  .subtitle {
+    font-size: 14px;
+  }
+
+  .settings-menu button {
+    font-size: 12px;
+  }
+
+  .mobile-nav button small {
+    font-size: 10px;
+  }
+}
+/* Theme-safe contrast improvements */
+.welcome,
+.angee-promo,
+.progress-welcome {
+  background: var(--surface-soft);
+  color: var(--text);
+}
+
+.welcome .eyebrow,
+.welcome .subtitle,
+.angee-promo p:not(.eyebrow) {
+  color: var(--muted);
+}
+
+.home-date-card,
+.project-item {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.today-button,
+.date-arrow,
+.project-icon,
+.stat-icon {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+.date-chip {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+.date-chip small {
+  color: var(--muted);
+}
+
+.date-chip.selected,
+.calendar-day.selected {
+  background: var(--accent);
+  color: var(--accent-text);
+  border-color: var(--accent);
+}
+
+.date-chip.selected small {
+  color: var(--accent-text);
+}
+
+.thought-card {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+.task-count,
+.status-tag,
+.alarm-label {
+  color: var(--text);
+}
+
+
+/* =========================================================
+   LUWANG — COHESIVE RESPONSIVE REDESIGN
+   Keeps the existing React component structure and features.
+========================================================= */
+
+:root {
+  --page: #fffdf8;
+  --surface: #ffffff;
+  --surface-soft: #fff8e9;
+  --text: #302d27;
+  --muted: #8b857a;
+  --border: #eee9df;
+  --accent: #e9bd48;
+  --accent-soft: #fff2ca;
+  --accent-text: #35290c;
+  --shadow: 0 12px 34px rgba(54, 45, 25, .065);
+  --shadow-hover: 0 16px 38px rgba(54, 45, 25, .10);
+}
+
+html { scroll-behavior: smooth; }
+body { background: var(--page); color: var(--text); }
+button { -webkit-tap-highlight-color: transparent; }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  outline-offset: 2px;
+}
+
+.app-shell {
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse at 88% 4%, color-mix(in srgb, var(--accent-soft) 65%, transparent), transparent 34rem),
+    var(--page);
+}
+
+.sidebar {
+  width: 252px;
+  padding: 30px 19px 22px;
+  background: color-mix(in srgb, var(--surface) 94%, var(--page));
+  border-right: 1px solid var(--border);
+  box-shadow: 5px 0 30px rgba(35, 30, 20, .025);
+  backdrop-filter: blur(18px);
+}
+
+.brand { gap: 11px; margin: 0 0 48px 4px; font-size: 24px; letter-spacing: -.8px; }
+.brand-icon, .auth-logo, .loading-logo, .about-mark {
+  border-radius: 15px;
+  box-shadow: 0 7px 16px color-mix(in srgb, var(--accent) 25%, transparent);
+}
+.nav-item {
+  min-height: 47px;
+  margin: 4px 0;
+  padding: 12px 14px;
+  border-radius: 14px;
+  font-size: 13px;
+  transition: background .2s ease, color .2s ease, transform .2s ease;
+}
+.nav-item:hover { transform: translateX(2px); }
+.nav-item.active { background: var(--accent-soft); color: var(--text); font-weight: 800; }
+.nav-icon { font-size: 20px; }
+
+.main-content {
+  max-width: 1580px;
+  margin-left: 252px;
+  padding: 34px clamp(24px, 4vw, 58px) 54px;
+}
+.topbar { margin-bottom: 30px; }
+.topbar-date { font-size: 12px; letter-spacing: .02em; }
+.topbar h1 { font-size: clamp(25px, 3vw, 34px); letter-spacing: -1.2px; }
+.live-clock { border-radius: 14px; padding: 10px 15px; background: var(--surface); box-shadow: var(--shadow); }
+.icon-button { border-radius: 13px; }
+
+.welcome {
+  min-height: 218px;
+  padding: 36px clamp(24px, 4vw, 44px);
+  border: 1px solid color-mix(in srgb, var(--accent) 18%, var(--border));
+  border-radius: 27px;
+  background:
+    radial-gradient(circle at 85% 48%, color-mix(in srgb, var(--accent) 22%, transparent) 0 92px, transparent 93px),
+    linear-gradient(115deg, var(--surface-soft), color-mix(in srgb, var(--surface) 80%, var(--accent-soft)));
+  box-shadow: var(--shadow);
+}
+.welcome::after {
+  content: "✦";
+  position: absolute;
+  right: 12%;
+  top: 12%;
+  color: color-mix(in srgb, var(--accent) 60%, transparent);
+  font-size: 23px;
+}
+.welcome h2 { font-size: clamp(29px, 4vw, 44px); line-height: 1.12; letter-spacing: -1.8px; }
+.welcome-symbol {
+  width: 132px; height: 132px; margin-right: 22px;
+  background: color-mix(in srgb, var(--accent-soft) 78%, var(--surface));
+  color: var(--accent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.home-date-card {
+  display: flex; align-items: center; justify-content: space-between; gap: 18px;
+  padding: 21px 24px; margin-bottom: 16px;
+  border: 1px solid var(--border); border-radius: 20px;
+  background: var(--surface); box-shadow: var(--shadow);
+}
+.home-date-card h2 { font-size: 22px; letter-spacing: -.6px; }
+.today-button, .date-arrow {
+  border: 0; border-radius: 12px; padding: 10px 15px;
+  background: var(--accent-soft); color: var(--text); font-weight: 800;
+}
+.date-strip { gap: 10px; margin: 0 0 22px; }
+.date-strip-days { gap: 8px; }
+.date-chip {
+  min-height: 76px; border: 1px solid var(--border); border-radius: 16px;
+  background: var(--surface); color: var(--text); box-shadow: 0 4px 14px rgba(30,25,15,.025);
+}
+.date-chip.selected { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+.date-chip small { color: var(--muted); }
+
+.thought-card {
+  position: relative; overflow: hidden; margin: 20px 0 24px; padding: 22px 25px;
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, var(--border));
+  border-radius: 20px; background: var(--accent-soft); color: var(--text);
+}
+.thought-card::after {
+  content: "✧"; position: absolute; right: 22px; bottom: -25px;
+  font-size: 100px; line-height: 1; opacity: .10;
+}
+.thought-card h3 { max-width: 760px; font-size: 17px; line-height: 1.55; }
+
+.stats-grid { gap: 17px; margin-bottom: 23px; }
+.stat-card, .content-card, .angee-promo {
+  border: 1px solid var(--border);
+  border-radius: 21px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+.stat-card { padding: 22px; transition: transform .2s ease, box-shadow .2s ease; }
+.stat-card:hover, .content-card:hover { box-shadow: var(--shadow-hover); }
+.stat-card h2 { font-size: 31px; letter-spacing: -1px; }
+.stat-icon {
+  display: grid; place-items: center; width: 39px; height: 39px;
+  border-radius: 13px; background: var(--accent-soft); color: var(--text);
+}
+.content-card { padding: 27px; margin-bottom: 22px; }
+.content-card h2 { font-size: 22px; letter-spacing: -.65px; }
+.section-heading { align-items: center; margin-bottom: 21px; }
+.task-count, .status-tag, .alarm-label {
+  padding: 7px 11px; border-radius: 999px;
+  background: var(--accent-soft); color: var(--text);
+  font-size: 11px; font-weight: 800;
+}
+.add-task-form { gap: 10px; margin: 17px 0; }
+input, select, textarea {
+  min-height: 45px; border: 1px solid var(--border); border-radius: 12px;
+  background: var(--surface); color: var(--text); padding: 11px 13px;
+}
+input::placeholder, textarea::placeholder { color: var(--muted); opacity: .8; }
+.primary-button, .secondary-button, .danger-button {
+  min-height: 43px; border-radius: 12px; padding: 11px 17px;
+  font-size: 13px; font-weight: 800; transition: transform .18s ease, box-shadow .18s ease;
+}
+.primary-button {
+  border: 1px solid var(--accent); background: var(--accent); color: var(--accent-text);
+  box-shadow: 0 5px 13px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+.primary-button:hover, .secondary-button:hover { transform: translateY(-1px); }
+.secondary-button { border: 1px solid var(--border); background: var(--surface-soft); color: var(--text); }
+.delete-button { border-radius: 10px; }
+.task-list { display: grid; gap: 9px; }
+.task-row, .schedule-item, .workout-item, .project-item {
+  border: 1px solid var(--border); border-radius: 15px;
+  background: var(--surface); padding: 14px 15px;
+}
+.task-row { gap: 13px; }
+.task-info strong { font-size: 14px; }
+.task-info small { color: var(--muted); }
+.check-button { border-radius: 10px; }
+.task-done { opacity: .66; }
+.overview-grid { gap: 18px; }
+.overview-grid > .content-card { margin-bottom: 0; }
+.angee-promo { padding: 26px; background: var(--surface-soft); }
+.angee-promo h2 { font-size: 23px; }
+.ai-icon { border-radius: 14px; }
+
+.calendar-header button, .date-arrow { border-radius: 12px; }
+.calendar-grid { gap: 7px; }
+.calendar-day { min-height: 43px; border-radius: 12px; }
+.calendar-day.selected { background: var(--accent); color: var(--accent-text); }
+.schedule-form, .workout-form { gap: 11px; }
+.schedule-list, .workout-list, .activity-list { display: grid; gap: 10px; }
+.timer-card { text-align: center; }
+.timer-card .section-heading { text-align: left; }
+.timer-display { font-size: clamp(48px, 8vw, 76px); font-weight: 800; letter-spacing: -3px; }
+.pomodoro-modes { flex-wrap: wrap; justify-content: center; gap: 8px; }
+.pomodoro-modes button { border: 1px solid var(--border); border-radius: 999px; padding: 9px 13px; background: var(--surface-soft); color: var(--text); }
+.pomodoro-modes button.selected { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+.workout-stat { border: 1px solid var(--border); border-radius: 15px; background: var(--surface-soft); }
+.settings-layout { gap: 20px; }
+.settings-menu, .settings-content { border-radius: 20px; }
+.settings-menu { padding: 12px; background: var(--surface); border: 1px solid var(--border); }
+.settings-menu button { border-radius: 12px; }
+.settings-menu button.selected { background: var(--accent-soft); color: var(--text); }
+.settings-content { min-width: 0; }
+.theme-option { border: 1px solid var(--border); border-radius: 16px; background: var(--surface); }
+.theme-option.selected { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 20%, transparent); }
+.theme-preview { border-radius: 11px; overflow: hidden; }
+.setting-row { border-bottom: 1px solid var(--border); }
+footer { padding: 25px 0 5px; color: var(--muted); font-size: 10px; letter-spacing: 1.5px; text-align: center; }
+
+.mobile-nav {
+  display: none;
+  position: fixed; z-index: 50; left: 12px; right: 12px; bottom: max(10px, env(safe-area-inset-bottom));
+  grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 2px;
+  padding: 8px 5px calc(8px + env(safe-area-inset-bottom));
+  border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+  border-radius: 20px; background: color-mix(in srgb, var(--surface) 92%, transparent);
+  box-shadow: 0 10px 34px rgba(25, 22, 16, .14); backdrop-filter: blur(20px);
+}
+.mobile-nav button {
+  display: flex; min-width: 0; flex-direction: column; align-items: center; justify-content: center;
+  gap: 4px; padding: 6px 2px; border: 0; border-radius: 13px;
+  background: transparent; color: var(--muted);
+}
+.mobile-nav button span { font-size: 19px; line-height: 1.1; }
+.mobile-nav button small { overflow: hidden; max-width: 100%; font-size: 9px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.mobile-nav button.active { background: var(--accent-soft); color: var(--text); }
+
+.theme-midnight {
+  --page: #11131c; --surface: #1b1e29; --surface-soft: #252839; --text: #f2eff9;
+  --muted: #aaa5b8; --border: #343647; --accent: #a99afa; --accent-soft: #302b49; --accent-text: #211b39;
+  --shadow: 0 12px 34px rgba(0,0,0,.18); --shadow-hover: 0 16px 38px rgba(0,0,0,.24);
+}
+.theme-lavender { --page:#faf8ff; --surface:#fff; --surface-soft:#f3edff; --text:#302943; --muted:#91889f; --border:#eae3f5; --accent:#b49af5; --accent-soft:#f0e9ff; --accent-text:#302044; }
+.theme-sage { --page:#f6f8f3; --surface:#fff; --surface-soft:#edf3e8; --text:#29352b; --muted:#89958a; --border:#e3eade; --accent:#a5bd97; --accent-soft:#eaf1e4; --accent-text:#273627; }
+.theme-ocean { --page:#f3f9fc; --surface:#fff; --surface-soft:#eaf5fa; --text:#243642; --muted:#8497a1; --border:#e0ebf0; --accent:#8bc9df; --accent-soft:#e4f4fa; --accent-text:#183846; }
+.theme-peach { --page:#fff8f4; --surface:#fff; --surface-soft:#fff0e8; --text:#49352f; --muted:#a28d83; --border:#f2e5dd; --accent:#f3b19a; --accent-soft:#ffede5; --accent-text:#512f25; }
+.theme-latte { --page:#faf6ef; --surface:#fff; --surface-soft:#f3eadc; --text:#3d3329; --muted:#988b7b; --border:#eae0d2; --accent:#c5a47c; --accent-soft:#f1e6d7; --accent-text:#392a1c; }
+.theme-emerald { --page:#f2f8f4; --surface:#fff; --surface-soft:#e7f2eb; --text:#20382c; --muted:#81988a; --border:#dcebe1; --accent:#72b596; --accent-soft:#e1f1e8; --accent-text:#17382a; }
+.dark-mode:not(.theme-midnight) {
+  --page:#171922; --surface:#20232e; --surface-soft:#2b2e3b; --text:#f1eff5;
+  --muted:#aaa7b4; --border:#343744; --shadow:0 12px 34px rgba(0,0,0,.18);
+  --shadow-hover:0 16px 38px rgba(0,0,0,.24);
+}
+.dark-mode .welcome { background: var(--surface-soft); }
+.dark-mode .thought-card { background: var(--accent-soft); color: var(--text); }
+.dark-mode .auth-card { background: var(--surface); color: var(--text); border-color: var(--border); }
+
+@media (max-width: 900px) {
+  .sidebar { width: 210px; }
+  .main-content { margin-left: 210px; padding-left: 25px; padding-right: 25px; }
+  .welcome-symbol { margin-right: 0; }
+}
+@media (max-width: 760px) {
+  .sidebar { display: none; }
+  .main-content { margin: 0; min-height: 100vh; padding: 22px 15px 112px; }
+  .topbar { align-items: flex-start; margin-bottom: 20px; }
+  .topbar h1 { font-size: 25px; }
+  .topbar-date { font-size: 11px; }
+  .topbar-right { gap: 7px; }
+  .live-clock { padding: 8px 10px; font-size: 11px; }
+  .icon-button { width: 34px; height: 34px; }
+  .home-date-card { padding: 17px; border-radius: 17px; }
+  .home-date-card h2 { font-size: 17px; }
+  .date-strip { gap: 5px; }
+  .date-strip-days { gap: 4px; }
+  .date-chip { min-height: 65px; padding: 8px 2px; border-radius: 12px; }
+  .date-chip small { font-size: 9px; }
+  .date-chip strong { font-size: 15px; }
+  .date-arrow { padding: 8px; }
+  .welcome { min-height: 180px; padding: 25px 21px; border-radius: 21px; }
+  .welcome h2 { max-width: 260px; font-size: 30px; }
+  .welcome-symbol { width: 72px; height: 72px; margin: 0 2px 0 0; font-size: 30px; }
+  .welcome::after { right: 15%; top: 7%; }
+  .thought-card { padding: 18px; border-radius: 17px; }
+  .thought-card h3 { font-size: 15px; }
+  .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .stat-card { min-width: 0; padding: 15px; border-radius: 16px; }
+  .stat-card h2 { font-size: 26px; }
+  .stat-card p { font-size: 11px; }
+  .stat-card small { font-size: 10px; }
+  .content-card { padding: 18px; margin-bottom: 15px; border-radius: 18px; }
+  .content-card h2 { font-size: 20px; }
+  .section-heading { gap: 8px; }
+  .section-heading h2 { font-size: 19px; }
+  .task-count { font-size: 9px; padding: 6px 8px; }
+  .add-task-form { grid-template-columns: 1fr 1fr; }
+  .add-task-form input:first-child { grid-column: 1 / -1; }
+  .add-task-form button { grid-column: 1 / -1; }
+  .overview-grid { grid-template-columns: 1fr; gap: 0; }
+  .overview-grid > .content-card { margin-bottom: 15px; }
+  .angee-promo { padding: 20px; margin-bottom: 15px; }
+  .settings-layout { grid-template-columns: 1fr; }
+  .settings-menu { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; }
+  .settings-menu button { padding: 10px 8px; font-size: 11px; text-align: left; }
+  .settings-content { padding: 18px; }
+  .theme-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+  .theme-option { padding: 11px; }
+  .theme-option small { font-size: 10px; }
+  .schedule-form, .workout-form { grid-template-columns: 1fr 1fr; }
+  .schedule-form > input:first-child, .schedule-form > .primary-button,
+  .workout-form > input:first-child, .workout-form > .primary-button { grid-column: 1 / -1; }
+  .workout-dashboard { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .mobile-nav { display: grid; }
+  footer { padding-bottom: 10px; }
+}
+@media (max-width: 380px) {
+  .main-content { padding-left: 11px; padding-right: 11px; }
+  .topbar h1 { font-size: 22px; }
+  .welcome-symbol { display: none; }
+  .mobile-nav { left: 7px; right: 7px; }
+  .mobile-nav button small { font-size: 8px; }
+}

@@ -403,13 +403,14 @@ const [newProject, setNewProject] = useState('')
   useEffect(() => {
     localStorage.setItem('luwang-dark-mode', JSON.stringify(darkMode))
   }, [darkMode])
-
   useEffect(() => {
     if (!user || !cloudDataLoaded || cloudDataUserId !== user.id) return
 
     let cancelled = false
 
     async function saveCloudData() {
+      if (!navigator.onLine) return
+
       const records = [
         { data_type: 'tasks', content: tasks },
         { data_type: 'schedule', content: schedule },
@@ -421,17 +422,39 @@ const [newProject, setNewProject] = useState('')
         updated_at: new Date().toISOString(),
       }))
 
-      const { error } = await supabase
-        .from('luwang_data')
-        .upsert(records, { onConflict: 'user_id,data_type' })
+      try {
+        const { error } = await supabase
+          .from('luwang_data')
+          .upsert(records, { onConflict: 'user_id,data_type' })
 
-      if (!cancelled && error) setAuthMessage('Cloud save failed: ' + error.message)
+        if (cancelled) return
+
+        if (error) {
+          console.warn('Cloud sync failed:', error.message)
+          setAuthMessage('Cloud sync pending. Your changes are saved on this device.')
+        } else {
+          setAuthMessage('')
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.warn('Cloud sync unavailable:', error)
+        }
+      }
     }
 
-    saveCloudData()
-    return () => { cancelled = true }
-  }, [user, cloudDataLoaded, cloudDataUserId, tasks, schedule, activityLog, workouts])
+    function handleOnline() {
+      saveCloudData()
+    }
 
+    window.addEventListener('online', handleOnline)
+
+    saveCloudData()
+
+    return () => {
+      cancelled = true
+      window.removeEventListener('online', handleOnline)
+    }
+  }, [user, cloudDataLoaded, cloudDataUserId, tasks, schedule, activityLog, workouts])
   useEffect(() => {
     const clock = setInterval(() => setCurrentDateTime(new Date()), 1000)
     return () => clearInterval(clock)
@@ -663,12 +686,17 @@ function addProject(event) {
 function deleteProject(id) {
   setProjects(previous => previous.filter(project => project.id !== id))
 }
-
-  function toggleTask(id) {
-    setTasks(previous => previous.map(task =>
-      task.id === id ? { ...task, done: !task.done } : task
-    ))
-  }
+function toggleTask(id) {
+  setTasks(previous => previous.map(task =>
+    task.id === id
+      ? {
+          ...task,
+          done: !task.done,
+          completedAt: !task.done ? new Date().toISOString() : null,
+        }
+      : task
+  ))
+}
 
   function deleteTask(id) {
     setTasks(previous => previous.filter(task => task.id !== id))
@@ -929,13 +957,14 @@ const dateStrip = Array.from({ length: 7 }, (_, index) => {
     const date = new Date(record.dateISO)
     return date >= weekStart && date <= new Date() ? total + record.seconds : total
   }, 0)
-
-  const weeklyCompletedActivities = schedule.filter(item => {
-    if (!item.done || !item.completedAt) return false
-    const date = new Date(item.completedAt)
-    return date >= weekStart && date <= new Date()
-  }).length
-
+const weeklyCompletedActivities = [
+  ...tasks.filter(item => item.done && item.completedAt),
+  ...schedule.filter(item => item.done && item.completedAt),
+  ...completedWorkouts.filter(item => item.completedAt),
+].filter(item => {
+  const date = new Date(item.completedAt)
+  return date >= weekStart && date <= new Date()
+}).length
   const activeDays = new Set([
     ...activityLog
       .filter(record => record.type === 'study' && record.dateISO)
